@@ -88,3 +88,43 @@ VALUES
 ('TXN002', (SELECT id FROM savings_account WHERE savings_acc_code='SA002'), 'Deposit', 50000.00, '2025-01-05 11:30:00', 'REF002', (SELECT id FROM agent WHERE agent_code='AG002')),
 ('TXN003', (SELECT id FROM savings_account WHERE savings_acc_code='SA003'), 'Deposit', 100000.00, '2025-02-10 09:45:00', 'REF003', (SELECT id FROM agent WHERE agent_code='AG003'))
 ON CONFLICT DO NOTHING;
+
+-- ...existing code...
+
+INSERT INTO customer (customer_code, first_name, last_name, date_of_birth, branch_id, agent_id)
+VALUES
+('CUST006', 'Malsha', 'Perera', '1998-08-12', (SELECT id FROM branch WHERE branch_code='BR002'), (SELECT id FROM agent WHERE agent_code='AG002')),
+('CUST007', 'Chathuri', 'Kumarasinghe', '2001-05-30', (SELECT id FROM branch WHERE branch_code='BR003'), (SELECT id FROM agent WHERE agent_code='AG003'))
+ON CONFLICT DO NOTHING;
+
+INSERT INTO account_holder (savings_acc_id, customer_id)
+VALUES
+((SELECT id FROM savings_account WHERE savings_acc_code='SA004'), (SELECT id FROM customer WHERE customer_code='CUST006')),
+((SELECT id FROM savings_account WHERE savings_acc_code='SA005'), (SELECT id FROM customer WHERE customer_code='CUST007'))
+ON CONFLICT DO NOTHING;
+
+-- ...existing code...
+
+-- Add interest bank transactions (used by monthly_interest_distribution) and link them to FDs
+
+INSERT INTO bank_transaction (transaction_code, savings_acc_id, transaction_type, amount, time_stamp, reference_number, agent_id)
+VALUES
+('TXN_INT_001', (SELECT id FROM savings_account WHERE savings_acc_code='SA001'), 'Interest', 130.00, '2025-02-10 00:00:00', 'INTREF001', (SELECT id FROM agent WHERE agent_code='AG001')),
+('TXN_INT_002', (SELECT id FROM savings_account WHERE savings_acc_code='SA002'), 'Interest', 500.00, '2025-02-15 00:00:00', 'INTREF002', (SELECT id FROM agent WHERE agent_code='AG002'))
+ON CONFLICT DO NOTHING;
+
+INSERT INTO fd_interest_credit (fd_id, credited_date, credited_amount, transaction_id)
+VALUES
+(
+  (SELECT id FROM fixed_deposit WHERE fd_code='FD001'),
+  '2025-02-10 00:00:00',
+  130.00,
+  (SELECT id FROM bank_transaction WHERE transaction_code='TXN_INT_001')
+),
+(
+  (SELECT id FROM fixed_deposit WHERE fd_code='FD002'),
+  '2025-02-15 00:00:00',
+  500.00,
+  (SELECT id FROM bank_transaction WHERE transaction_code='TXN_INT_002')
+)
+ON CONFLICT DO NOTHING;
